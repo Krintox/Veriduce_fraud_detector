@@ -18,6 +18,11 @@ try:
 except Exception as e:
     print(f"Error loading model: {e}")
 
+@app.route('/')
+def home():
+    return jsonify({'message': 'API is up and running'})
+
+
 @app.route("/predict", methods=["POST"])
 def predict():
     try:

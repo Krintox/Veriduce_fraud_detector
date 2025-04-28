@@ -1,49 +1,57 @@
+import os
+import numpy as np
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import tensorflow as tf
-from keras.losses import MeanSquaredError
-from flask import Flask, request, jsonify
 
+# Initialize Flask app
 app = Flask(__name__)
-CORS(app)  # This enables CORS for all routes
+CORS(app)
 
-
-# Define the custom objects for loading the model
-custom_objects = {"mse": MeanSquaredError()}
+# Load model
+MODEL_PATH = "trained_fraud_detector_autoencoder.h5"
+model = None
 
 try:
-    # Load the trained model
-    model_path = "E:/Bunny/Capstone_2025/machine_learning/fra_det_main/trained_fraud_detector_autoencoder.h5"
-    model = tf.keras.models.load_model(model_path, custom_objects=custom_objects)
-    print("Model loaded successfully!")
+    if os.path.exists(MODEL_PATH):
+        model = tf.keras.models.load_model(MODEL_PATH)
+        print("✅ Model loaded successfully!")
+    else:
+        print(f"⚠️ Model file not found at {MODEL_PATH}")
 except Exception as e:
-    print(f"Error loading model: {e}")
+    print(f"❌ Error loading model: {e}")
 
+# Define route
 @app.route('/')
 def home():
-    return jsonify({'message': 'API is up and running'})
+    return "Fraud Detection API is running!"
 
-
-@app.route("/predict", methods=["POST"])
+@app.route('/predict', methods=['POST'])
 def predict():
+    if model is None:
+        return jsonify({"error": "Model not loaded"}), 500
+
     try:
-        # Get JSON data from request
         data = request.get_json()
-        if not data or "input" not in data:
-            return jsonify({"error": "Invalid input data"}), 400
+        input_data = np.array(data['input']).reshape(1, -1)  # Reshape if needed
+        reconstruction = model.predict(input_data)
+        loss = np.mean(np.power(input_data - reconstruction, 2), axis=1)
 
-        # Convert input data into a TensorFlow-compatible format
-        input_data = tf.convert_to_tensor(data["input"])
+        # Threshold for fraud detection (adjust as needed)
+        threshold = 0.01
+        prediction = "Fraud" if loss > threshold else "Not Fraud"
 
-        # Get predictions from the model
-        predictions = model.predict(input_data)
-
-        # Return predictions as JSON
-        return jsonify({"predictions": predictions.tolist()})
+        return jsonify({
+            "loss": float(loss),
+            "prediction": prediction
+        })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 400
 
+# Run the app
 if __name__ == "__main__":
-    app.run(debug=True, port=7919)  # Run on port 7919
+    port = int(os.environ.get("PORT", 5000))  # default to 5000 locally
+    app.run(host="0.0.0.0", port=port, debug=True)
 
 # sample input:
 # {

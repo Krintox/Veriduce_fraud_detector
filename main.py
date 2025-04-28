@@ -9,7 +9,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "https://veri-duce.vercel.app"}})
 
 # Load model
 MODEL_PATH = "trained_fraud_detector_autoencoder.h5"

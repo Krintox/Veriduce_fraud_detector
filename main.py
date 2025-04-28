@@ -4,6 +4,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import tensorflow as tf
 
+# Disable GPU (optional to avoid unnecessary errors)
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)
@@ -14,7 +17,8 @@ model = None
 
 try:
     if os.path.exists(MODEL_PATH):
-        model = tf.keras.models.load_model(MODEL_PATH)
+        # Important: compile=False while loading
+        model = tf.keras.models.load_model(MODEL_PATH, compile=False)
         print("✅ Model loaded successfully!")
     else:
         print(f"⚠️ Model file not found at {MODEL_PATH}")
@@ -51,9 +55,4 @@ def predict():
 # Run the app
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # default to 5000 locally
-    app.run(host="0.0.0.0", port=port, debug=True)
-
-# sample input:
-# {
-#   "input": [[0.1, 0.5, 0.3, 0.8, 0.2, 0.6, 0.4]]
-# }
+    app.run(host="0.0.0.0", port=port)  # NO debug=True
